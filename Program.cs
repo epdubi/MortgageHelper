@@ -1,4 +1,6 @@
-﻿using CsvHelper;
+﻿using CommandLine;
+using CsvHelper;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -8,15 +10,15 @@ namespace MortgageHelper
 {
     class Program
     {
-        private static double TotalPrincipal => 0;
+        private static double TotalPrincipal { get; set; }
 
-        private static double InterestRate => .0;
+        private static double InterestRate { get; set; }
 
-        private static double MonthlyPayment => 0;
+        private static double MonthlyPayment { get; set; }
 
-        private static double MonthlyTaxesAndInsureance => 0;
+        private static double MonthlyTaxesAndInsurance { get; set; }
 
-        private static IEnumerable<int> LoanLengthInMonths => Enumerable.Range(1, 60);
+        private static IEnumerable<int> LoanLengthInMonths { get; set; }
 
         private static double MonthInterest(double outstandingPrincipal, double mortgageRate) => outstandingPrincipal * mortgageRate / 12;
 
@@ -24,16 +26,35 @@ namespace MortgageHelper
 
         static void Main(string[] args)
         {
+            Parser.Default.ParseArguments<Options>(args)
+                   .WithParsed<Options>(o =>
+                   {
+                       TotalPrincipal = o.TotalPrincipal;
+                       InterestRate = o.InterestRate;
+                       MonthlyPayment = o.MonthlyPayment;
+                       MonthlyTaxesAndInsurance = o.MonthlyTaxesAndInsurance;
+                       LoanLengthInMonths = Enumerable.Range(1, o.LoanLength);
+                   });
+
             var runningPrincipal = TotalPrincipal;
             var payments = new List<MonthlyPayment>();
 
             foreach (var month in LoanLengthInMonths)
             {
                 var monthlyPaidInterest = MonthInterest(runningPrincipal, InterestRate);
-                var monthlyPaidPrincipal = MonthPrincipal(monthlyPaidInterest) - MonthlyTaxesAndInsureance;
+                var monthlyPaidPrincipal = MonthPrincipal(monthlyPaidInterest) - MonthlyTaxesAndInsurance;
                 var monthlyEndingBalance = runningPrincipal - monthlyPaidPrincipal;
 
-                payments.Add(new MonthlyPayment { MonthNumber = month, StartingBalance = runningPrincipal, Payment = MonthlyPayment, InterestPaid = monthlyPaidInterest, PrincipalPaid = monthlyPaidPrincipal, TaxesAndInsurance = MonthlyTaxesAndInsureance, EndingBalance = monthlyEndingBalance });
+                payments.Add(new MonthlyPayment
+                {
+                    MonthNumber = month,
+                    StartingBalance = runningPrincipal,
+                    Payment = MonthlyPayment,
+                    InterestPaid = monthlyPaidInterest,
+                    PrincipalPaid = monthlyPaidPrincipal,
+                    TaxesAndInsurance = MonthlyTaxesAndInsurance,
+                    EndingBalance = monthlyEndingBalance
+                });
                 runningPrincipal = monthlyEndingBalance;
             }
 
